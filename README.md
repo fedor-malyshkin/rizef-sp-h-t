@@ -1,67 +1,92 @@
 # Backend Engineering Challenge
+The original document can be found there: [the original doc](docs/assignement.md).
 
-Welcome Candidate and thank you for taking the time to complete the take-home challenge for our backend engineer position
+## Technical and design notes regarding this solution
+Let's start from practical aspects:
+### How to ...
+#### ... build
+```shell
+./gradlew build -x test
+```
+#### ... run tests
+```shell
+./gradlew test
+```
+#### ... run with in-memory (not so interesting)
+```shell
+./gradlew bootRun
+```
+will be available on http://localhost:8080/
+#### ... reach OpenAPI specification
+Run locally any way and access http://localhost:8080/swagger-ui/index.html
+#### ... run with PostgreSQL (more fun)
+NB: It assumes that you have docker and docker-compose installed and running on your workstation.
 
-Once you have completed your solution, please reply with a link to a github repository and instructions on how to install / run the application
+Initialize and start docker by:
+```shell
+cd postgres
+docker-compose build
+docker-compose up
+```
+Run app in `prod` mode
+```shell
+cd ..
+./gradlew bootRun --args='--spring.profiles.active=prod'
+```
+The app will be available on http://localhost:8080/.
 
-Good luck and if you have questions, please reach out to us at **soroush@rize-ft.com**
+The PostgresSQL will be available on 5432 port (user: `postgres`, db: `postgres`, password: `mysecretpassword`)
+#### ... how to populate PostgreSQL DB by data (around 10 millions)
+NB:  it could take some time
+```shell
+cd postgres
+# if datafile is still gzipped
+gzip -d insert.sql.gz
+# copy it inside docker
+docker cp insert.sql postgres_postgres_1:/insert.sql
+# perform batch insert
+docker exec -it postgres_postgres_1 psql --username postgres --dbname postgres -f /insert.sql > /dev/null
+```
 
----
+### Design notes
+**NB**: The application was left as Spring MVC app for simplicity’s sake, 
+however for apps under high load it's better to use reactive architecture (WebFlux by Spring, Project Reactor, VertX ....) (it's
+increase throughput :) , but also increase latency :( ).
 
-1) Make sure you have min Java 11 installed.
-2) Run `./gradlew build` to build the api and dependencies. To start the API server, run `./gradlew bootrun`. (You can also use IDE commands for build/running if you wish)
+#### Separate models for storage and representation
+Here I use different models for storage and request/response encodings since the way we store our entities shouldn't 
+affect its representation. For mapping back and forth I use [Mapstruct library](https://mapstruct.org/). 
 
-# Overview
-This exercise is to implement the best possible solution to the exercise below. 
-We're evaluating your ability to take a set of requirements and spike a holistic solution that 
-demonstrates craftsmanship, thoughtfulness and good architectural 
-design. If you want to impress us, build something that is beautiful, 
-highest performant, intuitive and easy to debug/test/extend 😃 .
+#### The lack of business entities
+Some services with complex business logic have 3rd type of entities - "domain entities" (like those from DDD) and the 
+flow inside looks like this (when we store something): `representation entities -> business entities (for domain logic) 
+ -> db entities`. In this app there is no such complex logic, so business entities aren't used.
 
+#### Reference data in memory
+Some reference data like the types of orders, types of artists, store locations we usually
+keep in memory cached for quick access. To keep them in actual state we could
+listen to a stream/web socket about updates or (in the simplest case) update periodically.
+However, in this case it was used as a part of schema, so was left them fixed in code. 
 
-Ideally your solution would have some way to run locally so we can fully analyze your efforts.
+#### Marking that a response isn't complete
+Since it was said in the original description that the pagination isn't 
+required I added a mark in the response when we search records, that probably there is some extra data in DB
+and search criteria should be refined.
 
-# Exercise
-Design and implement a Java REST API that CRUDs artists.
-###### Authentication/Authorization is not required.
+#### OpenAPI specification
+To make it possible to other developers to play with the service 
+and be able to understand API - the OpenAPI specification is 
+available [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html) when the service is running.
 
-** A boilerplate model, controller and repository has been created for you **
+### Technical notes
+#### The usage of pg_trgm module
+Since only limited amount of databases supports non-left-anchored string search
+requests (something like `LIKE %blah-blah`) I use [pg_trgm](https://www.postgresql.org/docs/current/pgtrgm.html) module 
+together with GIN index for textual fields. 
 
+#### Custom Error Handler
+Implemented in [CustomExceptionHandler](src/main/java/com/rize/test/controller/CustomExceptionHandler.java)
 
-### Each artist object consists of following (but not limited):
-
-- first_name (required)
-
-- middle_name
-
-- last_name (required)
-
-- category (Can be one of ACTOR | PAINTER | SCULPTOR) (required)
-
-- birthday (required)
-
-- email (required)
-
-- notes
-
-
-###Notes:
-
-- The request and response should both be in JSON format
-
-- You can use the provided in-memory DB (H2)
-
-- Creation route should validate for required parameters (ex. if last_name not given or blank it should throw an error)
-
-- Filters should be case insensitive (ex. /artists?category=actor is the same as /artists?category=ACTOR)
-
-
-### The API should have the following:
-
-               - GET         /artists/:id     (Show)
-               - GET         /artists         (Index)
-               - POST        /artists         (Create)
-               - DELETE      /artists/:id     (Delete)
-- Getting a list of artists should be filterable. Ability to Filter by **category, birthday-month, search** (search -> can search by first_name or last_name, it should also partial search, ex. given search=vin should bring up kevin, if we have a kevin in the system) , you should also be able to filter by one, or more filters, for example search and category
-- Try to make sure your solution is the best performant, you can make any changes/additions you like to DB schema/indexes, application.properties, or any spring/java classes
-- **Assume** that we have a big collection of artists in the DB, make sure things are performant based on that assumption, however there is no need for pagination
+####
+If the DB is expected to be shared resource  a Circuit Breaker pattern should be added,
+but I this it's a little bit out of scope for this assignment.

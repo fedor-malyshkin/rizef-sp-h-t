@@ -1,33 +1,87 @@
 plugins {
-	id 'org.springframework.boot' version '2.6.3'
-	id 'io.spring.dependency-management' version '1.0.11.RELEASE'
-	id 'java'
+    id 'org.springframework.boot' version '2.6.3'
+    id 'io.spring.dependency-management' version '1.0.11.RELEASE'
+    id 'java'
 }
 
 group = 'com.rize'
 version = '0.0.1-SNAPSHOT'
 sourceCompatibility = '11'
 
+
 configurations {
-	compileOnly {
-		extendsFrom annotationProcessor
-	}
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
 }
 
 repositories {
-	mavenCentral()
+    mavenCentral()
 }
 
+ext {
+    MAPSTRUCT_VER = '1.4.2.Final'
+    LOMBOK_MAPSTRUCT_BINDING_VER = '0.2.0'
+    SPRINGDOC_VER = '1.6.6'
+    FLYWAY_VER = '8.5.4'
+    QUERYDSL_VER = '5.0.0'
+    PGSQL_JDBC_VER = '42.3.3'
+}
+
+
 dependencies {
-	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-	implementation 'org.springframework.boot:spring-boot-starter-web'
-	implementation 'org.springframework.boot:spring-boot-starter-validation'
-	compileOnly 'org.projectlombok:lombok'
-	runtimeOnly 'com.h2database:h2'
-	annotationProcessor 'org.projectlombok:lombok'
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation('org.springframework.boot:spring-boot-starter-web') {
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-tomcat'
+    }
+    implementation 'org.springframework.boot:spring-boot-starter-jetty'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    // openAPI
+    implementation "org.springdoc:springdoc-openapi-ui:${SPRINGDOC_VER}"
+    // Mapstruct
+    implementation "org.mapstruct:mapstruct:${MAPSTRUCT_VER}"
+    compileOnly 'org.projectlombok:lombok'
+    compileOnly "org.projectlombok:lombok-mapstruct-binding:${LOMBOK_MAPSTRUCT_BINDING_VER}"
+    runtimeOnly 'com.h2database:h2'
+    implementation "org.postgresql:postgresql:${PGSQL_JDBC_VER}"
+
+    // migration
+    implementation "org.flywaydb:flyway-core:${FLYWAY_VER}"
+    // QueryDSL
+    implementation "com.querydsl:querydsl-jpa:${QUERYDSL_VER}"
+    runtimeOnly "com.querydsl:querydsl-apt:${QUERYDSL_VER}"
+
+    // annotation processors (THE ORDER IS IMPORTANT!!!)
+    annotationProcessor(
+            "org.projectlombok:lombok-mapstruct-binding:${LOMBOK_MAPSTRUCT_BINDING_VER}",
+            'org.projectlombok:lombok',
+            "org.mapstruct:mapstruct-processor:${MAPSTRUCT_VER}",
+
+            "com.querydsl:querydsl-apt:${QUERYDSL_VER}:jpa",
+            'jakarta.persistence:jakarta.persistence-api',
+    )
+    // test
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'io.rest-assured:rest-assured'
+    testImplementation 'commons-io:commons-io:2.11.0'
+    testImplementation 'org.skyscreamer:jsonassert:1.5.0'
+    testImplementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor(
+            'org.projectlombok:lombok'
+    )
+
+}
+
+bootRun {
+	systemProperty 'spring.profiles.active', 'test'
+}
+
+test {
+    environment("SPRING_PROFILES_ACTIVE", "test")
 }
 
 tasks.named('test') {
-	useJUnitPlatform()
+    useJUnitPlatform()
 }

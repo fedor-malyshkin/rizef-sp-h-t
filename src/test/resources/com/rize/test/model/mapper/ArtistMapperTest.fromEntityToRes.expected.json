@@ -1,0 +1,11 @@
+{
+  "firstName": "fn",
+  "middleName": "mn",
+  "lastName": "ln",
+  "category": "PAINTER",
+  "birthday": "2020-01-01",
+  "email": "email",
+  "notes": "notes",
+  "createdAt": "2007-12-03T10:15:30Z",
+  "updatedAt": "2007-12-03T10:15:30Z"
+}
