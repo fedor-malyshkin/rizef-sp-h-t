@@ -28,7 +28,7 @@ spring:
       settings:
         web-allow-others: true
   flyway:
-    locations: "classpath:db/pgsql/migrations"
+    locations: "classpath:db/h2/migrations"
 app:
   artist.query.limit: 10
 ---

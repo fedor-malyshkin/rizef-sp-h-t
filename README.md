@@ -12,17 +12,17 @@ Let's start from practical aspects:
 ```shell
 ./gradlew test
 ```
-#### ... run with in-memory (not so interesting)
+#### ... run with in-memory DB (not so interesting)
 ```shell
 ./gradlew bootRun
 ```
-will be available on http://localhost:8080/
-#### ... reach OpenAPI specification
-Run locally any way and access http://localhost:8080/swagger-ui/index.html
+The app will be available on http://localhost:8080/.
+#### ... reach out OpenAPI specification
+Run locally and go to http://localhost:8080/swagger-ui/index.html
 #### ... run with PostgreSQL (more fun)
-NB: It assumes that you have docker and docker-compose installed and running on your workstation.
+NB: It assumes that you have `docker` and `docker-compose` installed and running on your workstation.
 
-Initialize and start docker by:
+Initialize and start PostgreSQL in docker by:
 ```shell
 cd postgres
 docker-compose build
@@ -35,7 +35,7 @@ cd ..
 ```
 The app will be available on http://localhost:8080/.
 
-The PostgresSQL will be available on 5432 port (user: `postgres`, db: `postgres`, password: `mysecretpassword`)
+The PostgreSQL will be available on 5432 port (user: `postgres`, db: `postgres`, password: `mysecretpassword`)
 #### ... how to populate PostgreSQL DB by data (around 10 millions)
 NB:  it could take some time
 ```shell
